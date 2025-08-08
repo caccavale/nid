@@ -1,17 +1,24 @@
 
 # Goal
 
-shitpost OSRS into a graph.  
+put OSRS into a graph.  do not think about usability
 
+ex:
 - Monsters <- drop -> items <- craft -> items <- are sold by -> vendors 
 - Items <- required for -> quests 
 - Skills <- required for -> quests 
 - Quests <- required for -> quests
-
+- there are a lot of relationships to add over time we will add node/edge filters we are engineers not designers
 
 # Architecture
 
-github runner on chron: compare date to last run (idk write a file), check wiki for page changes in that time, re-fetch data for those pages, mangle into graph, publish to gh pages
+## v0
+
+local run fetches a limited graph solely through SMW api calls to categories and properties, e.g. monsters <-drop-> items
+
+## ideal
+
+github runner on chron: compare date to last run (idk write a file), use wiki API for page changes in that time, re-fetch data for those pages to disk cache, mangle into graph, publish to gh pages
 
 # Tech Stack
 
@@ -23,10 +30,12 @@ github runner on chron: compare date to last run (idk write a file), check wiki 
 if ur thinking about introducing more complexity or technology think again
 
 # Constraints
+this is not allowed to cost anything
 
-free tier of gh actions, static ghpages site (this is not allowed to cost anything)
-
-1 rps to OSRS api, 
+- free tier of gh actions (limited runner time and frequency)
+- static ghpages site 
+- 1 rps to OSRS wiki api
+- 1 rps scraping OSRS wiki
 
 # Resources
 

@@ -8,7 +8,7 @@ webs:
 
 # Generate graph.json for target
 build *targets:
-   python -m nid.nid -o ./out/graph.json {{targets}}
+   ./venv/bin/python -m nid.nid -o ./out/graph.json {{targets}}
 
 # Install project dependencies using venv
 install:

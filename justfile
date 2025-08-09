@@ -7,7 +7,7 @@ webs:
 
 # generate graph.json for target (`just build --help` for more info)
 build *targets:
-    python ./nid/main.py -o ./out/graph.json {{targets}}
+    python -m nid.main -o ./out/graph.json {{targets}}
 
 # install project dependencies
 install:

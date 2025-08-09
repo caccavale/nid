@@ -1,22 +1,27 @@
 from __future__ import annotations
 
 import json
-import time
+import os
 
-import requests
+import httpx
 
 import logging
+
+from ratelimit import sleep_and_retry, limits
 
 logging.basicConfig(level=logging.NOTSET)
 
 logger = logging.getLogger()
 
 
+@sleep_and_retry
+@limits(calls=1, period=1)
 def perform_query(params) -> dict:
-    response = requests.get(
+    response = httpx.get(
         "https://oldschool.runescape.wiki/api.php",
         headers={"user-agent": "nid (@bouk on discord)"},
         params=params,
+        timeout=10,
     )
 
     if not response.status_code == 200:
@@ -29,11 +34,13 @@ def perform_query(params) -> dict:
 
 
 def perform_pagename_paginated_smw_query(
-    selections, printouts, page_size=10000, max_pages=0, delay=1.0
+    selections, printouts=None, page_size=10000, max_pages=0, delay=1.0
 ) -> dict:
+    printouts = f"|{printouts}" if printouts else ""
+
     def build_query(last_page=None):
         last_page = f"|[[>>{last_page}]]" if last_page else ""
-        return f"{selections}{last_page}|{printouts}|limit={page_size}"
+        return f"{selections}{last_page}{printouts}|limit={page_size}"
 
     def build_params(query):
         return {
@@ -49,19 +56,21 @@ def perform_pagename_paginated_smw_query(
         _results = perform_query(params)
         new_last = list(_results.keys())[-1]
         logger.debug(
-            f"...complete, fetched {len(_results)} results [{last_page or ' '}, {new_last})"
+            f"...complete, fetched {len(_results)} results ({last_page or ' '}, {new_last}]"
         )
         return _results, new_last
 
     results, cursor = query_with_debug()
 
     page = 1
-    while (max_pages == 0 or page < max_pages) and len(results) == page * page_size:
+    while max_pages == 0 or page < max_pages:
         more, cursor = query_with_debug(cursor)
         results.update(more)
+        logger.debug(f"\t...up to {len(results)} results.")
         page += 1
 
-        time.sleep(delay)
+        if len(more) < page_size:
+            break
 
     return results
 
@@ -81,7 +90,10 @@ class Graph:
         self._nodes.add(node)
         self._dirty = True
 
-    def add_edge(self, source: str, target: str):
+    def add_edge(self, source: str, target: str, create_nodes=False):
+        if create_nodes:
+            self.add_node(source)
+            self.add_node(target)
         self._edges.add((source, target))
         self._dirty = True
 
@@ -117,13 +129,13 @@ class Graph:
         return {"nodes": nodes, "links": edges}
 
 
-def graph_of_items() -> Graph:
-    item_data = perform_pagename_paginated_smw_query(
+def graph_of_production() -> Graph:
+    production_data = perform_pagename_paginated_smw_query(
         "[[Category:Items]]", "?Production JSON|?Uses material"
     )
 
     graph = Graph()
-    for name, value in item_data.items():
+    for name, value in production_data.items():
         graph.add_node(name)
 
         for use in value.get("printouts", {}).get("Uses material", []):
@@ -132,8 +144,28 @@ def graph_of_items() -> Graph:
     return graph
 
 
-if __name__ == "__main__":
-    graph = graph_of_items()
+def graph_of_drops() -> Graph:
+    drop_data = perform_pagename_paginated_smw_query("[[Drop JSON::+]]", "?Drop JSON")
 
-    with open("graph.json", "w") as f:
+    graph = Graph()
+    for value in drop_data.values():
+        if drop_json := value.get("printouts", {}).get("Drop JSON", [None])[0]:
+            drop = json.loads(drop_json)
+
+            source = drop.get("Dropped from")
+            target = drop.get("Dropped item")
+
+            if source and target:
+                graph.add_edge(source, target, create_nodes=True)
+
+    return graph
+
+
+if __name__ == "__main__":
+    graph = graph_of_drops()
+
+    # graph = graph_of_production()
+    #
+    os.makedirs("./out", exist_ok=True)
+    with open(".out/graph.json", "w") as f:
         json.dump(graph.clean().to_d3(), f)

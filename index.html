@@ -31,7 +31,7 @@
         // Create a simulation with several forces.
         const simulation = d3.forceSimulation(nodes)
             .force("link", d3.forceLink(links).id(d => d.id).distance(20))
-            .force("charge", d3.forceManyBody().strength(-7))
+            .force("charge", d3.forceManyBody().strength(-6))
             .force("x", d3.forceX(width / 2))
             .force("y", d3.forceY(height / 2))
             .on("tick", draw);
@@ -80,7 +80,7 @@
 
         // Add a drag behavior. The _subject_ identifies the closest node to the pointer,
         // conditional on the distance being less than 20 pixels.
-        d3.select(canvas)
+        d3.select(canvas).node()
             .call(
                 d3.drag()
                 .subject(event => {

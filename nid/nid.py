@@ -10,6 +10,12 @@ import logging
 from nid.domain import TARGETS, build
 from nid.logger import logger
 
+log_levels = [
+    level
+    for level in logging.getLevelNamesMapping().keys()
+    if level.lower() not in ("critical", "warn")
+]
+
 
 @click.command()
 @click.argument(
@@ -17,7 +23,6 @@ from nid.logger import logger
     nargs=-1,
     type=click.Choice(["all", *TARGETS.keys()], case_sensitive=False),
 )
-@click.option("-s", "--sample", type=int, default=-1, show_default=True)
 @click.option(
     "-o",
     "--output",
@@ -25,14 +30,14 @@ from nid.logger import logger
     default="./graph.json",
     show_default=True,
 )
+@click.option("-s", "--sample", type=int, default=-1, show_default=True)
 @click.option(
     "-v",
     "--verbose",
-    type=click.Choice(logging.getLevelNamesMapping().keys(), case_sensitive=False),
+    type=click.Choice(log_levels, case_sensitive=False),
     default="warning",
     is_flag=False,
     flag_value="debug",
-    show_default=True,
 )
 @click.option("-vv", is_flag=True, hidden=True)
 def cli(
@@ -51,7 +56,7 @@ def cli(
 
     output.parent.mkdir(exist_ok=True)
     with open(output, "w") as f:
-        json.dump(graph.clean().to_d3(), f)
+        json.dump(graph.to_d3(), f)
 
 
 def configure_logging(verbose: str, vv: bool) -> None:

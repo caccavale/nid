@@ -14,9 +14,7 @@ def require_clean(method: graph_method) -> graph_method:
     @wraps(method)
     def wrapper(self: Graph, *args: Any, **kwargs: Any) -> Any:
         if self._dirty:
-            logger.warning(
-                f"Graph.{method.__name__} on dirty graph may incur a performance penalty"
-            )
+            logger.info(f"Cleaning graph before {method.__name__}")
             self = self.clean()
 
         return method(self, *args, **kwargs)

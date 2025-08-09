@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 
+import click
 import httpx
 
 import logging
@@ -90,10 +91,7 @@ class Graph:
         self._nodes.add(node)
         self._dirty = True
 
-    def add_edge(self, source: str, target: str, create_nodes=False):
-        if create_nodes:
-            self.add_node(source)
-            self.add_node(target)
+    def add_edge(self, source: str, target: str):
         self._edges.add((source, target))
         self._dirty = True
 
@@ -129,12 +127,13 @@ class Graph:
         return {"nodes": nodes, "links": edges}
 
 
-def graph_of_production() -> Graph:
+def graph_of_production(graph: Graph | None) -> Graph:
+    graph = graph or Graph()
+
     production_data = perform_pagename_paginated_smw_query(
         "[[Category:Items]]", "?Production JSON|?Uses material"
     )
 
-    graph = Graph()
     for name, value in production_data.items():
         graph.add_node(name)
 
@@ -144,10 +143,11 @@ def graph_of_production() -> Graph:
     return graph
 
 
-def graph_of_drops() -> Graph:
+def graph_of_drops(graph: Graph | None) -> Graph:
+    graph = graph or Graph()
+
     drop_data = perform_pagename_paginated_smw_query("[[Drop JSON::+]]", "?Drop JSON")
 
-    graph = Graph()
     for value in drop_data.values():
         if drop_json := value.get("printouts", {}).get("Drop JSON", [None])[0]:
             drop = json.loads(drop_json)
@@ -156,16 +156,41 @@ def graph_of_drops() -> Graph:
             target = drop.get("Dropped item")
 
             if source and target:
-                graph.add_edge(source, target, create_nodes=True)
+                graph.add_node(source)
+                graph.add_node(target)
+                graph.add_edge(source, target)
 
     return graph
 
 
-if __name__ == "__main__":
-    graph = graph_of_drops()
+relationships = {"drops": graph_of_drops, "production": graph_of_production}
 
-    # graph = graph_of_production()
-    #
+
+@click.command()
+@click.argument("targets", nargs=-1)
+def generate_data(targets: tuple[str, ...]):
+    """Generate graph.json.
+
+    TARGETS can be any combination of [production, drops, or all], defaults to "all"
+    """
+    targets = targets or ("all",)
+    targets = tuple(target.lower() for target in targets)
+
+    graph = Graph()
+
+    if "all" in targets:
+        targets = tuple(relationships.keys())
+
+    for target in targets:
+        if target in relationships:
+            graph = relationships[target](graph)
+        else:
+            logger.error(f"No target: {target}")
+
     os.makedirs("./out", exist_ok=True)
-    with open(".out/graph.json", "w") as f:
+    with open("./out/graph.json", "w") as f:
         json.dump(graph.clean().to_d3(), f)
+
+
+if __name__ == "__main__":
+    generate_data()

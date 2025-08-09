@@ -1,3 +1,4 @@
 click
+diskcache
 httpx
 ratelimit

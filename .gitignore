@@ -1,5 +1,8 @@
-.idea/
+__pycache__/
 
 lib/
 out/
 venv/
+cache/
+.idea/
+

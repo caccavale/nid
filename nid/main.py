@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-import os
+import pathlib
 
 import click
 import httpx
@@ -10,9 +10,8 @@ import logging
 
 from ratelimit import sleep_and_retry, limits
 
-logging.basicConfig(level=logging.NOTSET)
-
-logger = logging.getLogger()
+logging.basicConfig()
+logger = logging.getLogger(__name__)
 
 
 @sleep_and_retry
@@ -163,34 +162,80 @@ def graph_of_drops(graph: Graph | None) -> Graph:
     return graph
 
 
-relationships = {"drops": graph_of_drops, "production": graph_of_production}
+TARGETS = {"drops": graph_of_drops, "production": graph_of_production}
 
 
-@click.command()
-@click.argument("targets", nargs=-1)
-def generate_data(targets: tuple[str, ...]):
-    """Generate graph.json.
+def build_single(target: str, graph: Graph | None) -> Graph:
+    graph = graph or Graph()
 
-    TARGETS can be any combination of [production, drops, or all], defaults to "all"
-    """
+    if target in TARGETS:
+        return TARGETS[target](graph)
+
+    logger.error(f"No target: {target}")
+    return graph
+
+
+def build(targets: tuple[str, ...]) -> Graph:
     targets = targets or ("all",)
     targets = tuple(target.lower() for target in targets)
 
-    graph = Graph()
-
     if "all" in targets:
-        targets = tuple(relationships.keys())
+        targets = tuple(TARGETS.keys())
 
+    graph = Graph()
     for target in targets:
-        if target in relationships:
-            graph = relationships[target](graph)
-        else:
-            logger.error(f"No target: {target}")
+        graph = build_single(target, graph)
 
-    os.makedirs("./out", exist_ok=True)
-    with open("./out/graph.json", "w") as f:
+    return graph
+
+
+@click.command()
+@click.argument(
+    "targets",
+    nargs=-1,
+    type=click.Choice(["all", *TARGETS.keys()], case_sensitive=False),
+)
+@click.option(
+    "-o",
+    "--output",
+    type=click.Path(path_type=pathlib.Path),
+    default="./graph.json",
+    show_default=True,
+)
+@click.option(
+    "-v",
+    "--verbose",
+    type=click.Choice(logging.getLevelNamesMapping().keys(), case_sensitive=False),
+    default="warning",
+    is_flag=False,
+    flag_value="debug",
+)
+@click.option("-vv", is_flag=True, hidden=True)
+def cli(targets: tuple[str, ...], output: pathlib.Path, verbose: str, vv: bool):
+    """Generate graph.json from TARGETS, defaults to all."""
+
+    configure_logging(verbose, vv)
+
+    graph = build(targets)
+
+    if output.exists() and output.is_dir():
+        output /= "graph.json"
+
+    output.parent.mkdir(exist_ok=True)
+    with open(output, "w") as f:
         json.dump(graph.clean().to_d3(), f)
 
 
+def configure_logging(verbose: str, vv: bool) -> None:
+    if vv:
+        verbose = "NOTSET"
+        logging.basicConfig(level=logging.NOTSET)
+
+    verbose = verbose.upper()
+
+    logger.setLevel(logging.getLevelNamesMapping()[verbose])
+    logger.info(f"Set log level: {verbose}")
+
+
 if __name__ == "__main__":
-    generate_data()
+    cli()

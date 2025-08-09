@@ -1,5 +1,4 @@
 
-Be using python 3.13, probably use a .venv
-```bash
-just update
-```
+fork and pr or contact bouk for repo perms
+
+create a python 3.13 venv and then `just install`

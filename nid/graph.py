@@ -38,12 +38,17 @@ class Graph:
     _forward: dict[str, set[str]]
     _reverse: dict[str, set[str]]
 
+    _tags: dict[str | tuple[str, str], dict[str, str]]
+
     # _cardinality: dict[str, int] = field(default_factory=dict)
 
     _dirty: bool
 
     def __init__(
-        self, nodes: set[str] | None = None, edges: set[tuple[str, str]] | None = None
+        self,
+        nodes: set[str] | None = None,
+        edges: set[tuple[str, str]] | None = None,
+        tags: dict[str | tuple[str, str], dict[str, str]] | None = None,
     ):
         self._nodes = set()
         self._edges = set()
@@ -51,23 +56,33 @@ class Graph:
         self._forward = defaultdict(set)
         self._reverse = defaultdict(set)
 
-        self._dirty = False
+        self._tags = defaultdict(dict)
+
+        tags = tags or {}
 
         for node in nodes or []:
-            self.add_node(node)
+            self.add_node(node, tags.get(node))
 
-        for edge in edges or []:
-            self.add_edge(*edge)
+        for left, right in edges or []:
+            self.add_edge(left, right, tags.get((left, right)))
+
+        self._dirty = False
 
     @mark_dirty
-    def add_node(self, node: str):
+    def add_node(self, node: str, tags: dict[str, str] | None = None):
         self._nodes.add(node)
 
+        if tags:
+            self._tags[node].update(tags)
+
     @mark_dirty
-    def add_edge(self, source: str, target: str):
+    def add_edge(self, source: str, target: str, tags: dict[str, str] | None = None):
         self._edges.add((source, target))
         self._forward[source].add(target)
         self._reverse[target].add(source)
+
+        if tags:
+            self._tags[(source, target)].update(tags)
 
     def clean(self, exclude_islands=True) -> Graph:
         if exclude_islands:
@@ -92,7 +107,7 @@ class Graph:
 
             edges.add((source, target))
 
-        return Graph(nodes, edges)
+        return Graph(nodes, edges, self._tags)
 
     @require_clean
     def sample(self, sample_size: int) -> Graph:
@@ -125,12 +140,21 @@ class Graph:
 
                 target_to_nodes_in_graph.pop(node)
 
-        return Graph(nodes, edges)
+        return Graph(nodes, edges, self._tags)
 
     @require_clean
     def to_d3(self) -> dict[str, list[dict[str, str]] | dict[str, list[str]]]:
-        nodes = [{"id": node} for node in self._nodes]
-        edges = [{"source": source, "target": target} for source, target in self._edges]
-        relations = {k: list(v) for k, v in self._forward.items() if v}
+        nodes = [self._tags.get(node, {}) | {"id": node} for node in self._nodes]
+        edges = [
+            self._tags.get((source, target), {}) | {"source": source, "target": target}
+            for source, target in self._edges
+        ]
+        outbound = {k: list(v) for k, v in self._forward.items() if v}
+        inbound = {k: list(v) for k, v in self._reverse.items() if v}
 
-        return {"nodes": nodes, "links": edges, "relations": relations}
+        return {
+            "nodes": nodes,
+            "links": edges,
+            "outbound": outbound,
+            "inbound": inbound,
+        }

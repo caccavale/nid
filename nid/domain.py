@@ -15,10 +15,10 @@ def graph_of_production(graph: Graph | None) -> Graph:
     )
 
     for name, value in production_data.items():
-        graph.add_node(name)
+        graph.add_node(name, {"type": "item"})
 
         for use in value.get("printouts", {}).get("Uses material", []):
-            graph.add_edge(use.get("fulltext"), name)
+            graph.add_edge(use.get("fulltext"), name, {"type": "production"})
 
     return graph
 
@@ -36,9 +36,9 @@ def graph_of_drops(graph: Graph | None) -> Graph:
             target = drop.get("Dropped item")
 
             if source and target:
-                graph.add_node(source)
-                graph.add_node(target)
-                graph.add_edge(source, target)
+                graph.add_node(source, {"type": "monster"})
+                graph.add_node(target, {"type": "item"})
+                graph.add_edge(source, target, {"type": "drop"})
 
     return graph
 

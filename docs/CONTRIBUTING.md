@@ -13,10 +13,5 @@ pip3 --version```
 
 clone your repo.
 
-from nid/ run the justfile setup step
-`justfile setup`
-
-Justfile setup will install your venv and install all requirements.
-
-Activate venv after calling `justfile setup` w/:
-`source venv/bin/activate`
+from nid/ run the justfile install step
+`justfile install`

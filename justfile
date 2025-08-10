@@ -13,7 +13,7 @@ webs:
 
 # Generate graph.json for target
 build *targets:
-    {{_source}} python -m nid.nid -o ./niddy/out/graph.json {{targets}}
+    {{_source}} python -m nid -o ./niddy/out/graph.json {{targets}}
 
 # install project dependencies
 install: _venv _lib

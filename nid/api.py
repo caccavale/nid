@@ -18,7 +18,7 @@ def perform_query(params) -> dict:
         "https://oldschool.runescape.wiki/api.php",
         headers={"user-agent": "nid (@bouk on discord)"},
         params=params,
-        timeout=100,
+        timeout=60.0,
     )
 
     if not response.status_code == 200:

@@ -9,11 +9,11 @@ _default:
 
 # host a webserver for testing vis
 webs:
-    {{_source}} python -m http.server
+    {{_source}} cd ./niddy && python -m http.server
 
 # generate graph.json for target (`just build --help` for more info)
 build *targets:
-    {{_source}} python -m nid.nid -o ./out/graph.json {{targets}}
+    {{_source}} python -m nid.nid -o ./niddy/out/graph.json {{targets}}
 
 # install project dependencies
 install: _venv _lib
@@ -27,3 +27,6 @@ _venv:
     python -m venv {{venv}}
     {{_source}} pip install -r requirements.txt -r requirements-dev.txt
     {{_source}} pre-commit install
+
+clean:
+    rm -rf ./cache

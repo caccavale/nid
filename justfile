@@ -7,11 +7,11 @@ _source := "source " + _venv_loc + " &&"
 _default:
     just --list
 
-# host a webserver for testing vis
+# Host a webserver for testing vis
 webs:
     {{_source}} cd ./niddy && python -m http.server
 
-# generate graph.json for target (`just build --help` for more info)
+# Generate graph.json for target
 build *targets:
     {{_source}} python -m nid.nid -o ./niddy/out/graph.json {{targets}}
 

@@ -1,4 +1,20 @@
-
 fork and pr or contact bouk for repo perms
 
-create a python 3.13 venv and then `just install`
+setup steps
+
+from your terminal:
+```sudo apt update
+sudo apt install python3 python3-pip```
+
+verify your installs:
+```python3 --version
+pip3 --version```
+
+clone your repo.
+
+from nid/ run the justfile install step
+`justfile install`
+
+activate your venv via 
+`just venv`
+

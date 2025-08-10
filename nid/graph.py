@@ -101,7 +101,6 @@ class Graph:
 
         node_iter = iter(self._nodes)
         target_to_nodes_in_graph: dict[str, set[str]] = defaultdict(set)
-        # source_to_nodes_in_graph: dict[str, set[str]] = defaultdict(set)
 
         while len(nodes) < min(sample_size, len(self._nodes)):
             if target_to_nodes_in_graph:
@@ -118,9 +117,6 @@ class Graph:
                     edges.add((node, target))
                 else:
                     target_to_nodes_in_graph[target].add(node)
-
-            # for source in self._reverse.get(node):
-            #     source_to_nodes_in_graph[source].add(node)
 
             # Only add node relationships in one direction
             if node in target_to_nodes_in_graph:

@@ -1,4 +1,3 @@
-
 venv := ".venv"
 
 _venv_bin_dir := if os_family() == "windows" { "Scripts" } else { "bin" }

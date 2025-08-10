@@ -1,4 +1,3 @@
-
 fork and pr or contact bouk for repo perms
 
 setup steps
@@ -15,3 +14,7 @@ clone your repo.
 
 from nid/ run the justfile install step
 `justfile install`
+
+activate your venv via 
+`just venv`
+

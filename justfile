@@ -19,8 +19,8 @@ build *targets:
 install: _venv _lib
 
 _lib:
-    mkdir -p ./lib
-    cd ./lib && curl -O https://d3js.org/d3.v7.js
+    mkdir -p ./niddy/lib
+    cd ./niddy/lib && curl -O https://d3js.org/d3.v7.js
 
 _venv:
     pip install virtualenv

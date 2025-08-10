@@ -61,7 +61,7 @@ function handleMouseMove(event) {
     nodes.forEach((node) => {
         if (isOnTopOfNode(event, node)) {
             currentNodeToLabel = node;
-            simulation.alpha(0).restart();
+            simulation.restart();
         }
     });
 }
@@ -130,7 +130,7 @@ function drawLabel(node) {
         context.fillStyle = 'black'; // Set text color
         context.textAlign = 'center';
         context.textBaseline = 'middle';
-        context.fillText(node.id, node.x - 5, node.y - (NODE_SIZE + 5));
+        context.fillText(node.id, node.x - NODE_SIZE, node.y - NODE_SIZE * 2);
         context.strokeStyle = d3.color('orange');
         context.stroke();
         context.restore();

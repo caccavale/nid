@@ -50,7 +50,7 @@ function setupData(data) {
     // so that re-evaluating this cell produces the same result.
     links = data.links.map((d) => ({ ...d }));
     nodes = data.nodes.map((d) => ({ ...d }));
-    relations = data.relations;
+    relations = data.outbound;
 
     nodes.forEach((node) => {
         node.x = window_width;
@@ -188,7 +188,7 @@ function drawNode(node) {
     context.moveTo(node.x + NODE_SIZE, node.y);
     context.arc(node.x, node.y, NODE_SIZE, 0, 2 * Math.PI);
 
-    context.fillStyle = color(node.group);
+    context.fillStyle = color(node.type);
     context.strokeStyle = '#fff';
     context.fill();
     context.stroke();

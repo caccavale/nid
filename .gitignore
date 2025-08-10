@@ -1,6 +1,6 @@
 __pycache__/
 
-lib/
+niddy/lib/
 out/
 venv/
 cache/

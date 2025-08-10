@@ -1,24 +1,30 @@
-# Default: show available commands
+
+venv := ".venv"
+
+_venv_bin_dir := if os_family() == "windows" { "Scripts" } else { "bin" }
+_venv_loc := venv / _venv_bin_dir / "activate"
+_source := "source " + _venv_loc + " &&"
+
 _default:
     just --list
 
 # Host a webserver for testing vis
 webs:
-    ./venv/bin/python -m http.server
+    {{_source}} python -m http.server
 
 # Generate graph.json for target
 build *targets:
-   ./venv/bin/python -m nid.nid -o ./out/graph.json {{targets}}
+    {{_source}} python -m nid.nid -o ./out/graph.json {{targets}}
 
-# Install project dependencies using venv
-install:
-    test -d venv || python3 -m venv venv
-    ./venv/bin/pip install -r requirements.txt -r requirements-dev.txt
-    ./venv/bin/pre-commit install
+# install project dependencies
+install: _venv _lib
+
+_lib:
     mkdir -p ./lib
     cd ./lib && curl -O https://d3js.org/d3.v7.js
 
-# Setup: install and prep everything
-setup: install
-    echo "Project setup done."
-    echo "Now run: source venv/bin/activate"
+_venv:
+    pip install virtualenv
+    python -m venv {{venv}}
+    {{_source}} pip install -r requirements.txt -r requirements-dev.txt
+    {{_source}} pre-commit install

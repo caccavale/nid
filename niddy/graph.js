@@ -1,3 +1,6 @@
+import { Link } from './models/models.js';
+import { drawArrow, drawLabel } from './util/drawing.js';
+
 d3.json('./out/graph.json')
     .then((data) => {
         window.addEventListener('resize', handleResize);
@@ -5,9 +8,13 @@ d3.json('./out/graph.json')
     })
     .catch(console.error);
 
+// Specify the color scale.
+const color = d3.scaleOrdinal(d3.schemeCategory10);
+
 const MARGIN_VALUE = 30;
 const NODE_SIZE = 7;
 const POINTER_GRAB_RANGE = 75;
+const LINK_HIGHLIGHT_COLOR = d3.color('green');
 
 let window_width = window.innerWidth - MARGIN_VALUE;
 let window_height = window.innerHeight - MARGIN_VALUE;
@@ -19,7 +26,9 @@ let simulation = null;
 let links = [];
 let nodes = [];
 let relations = {};
-let currentNodeToLabel = null;
+
+let selectedNode = null;
+let selectedNodeLinks = [];
 
 const distanceToNodeFunction = (sourceCoords, nodeCoords) => {
     const [x, y] = sourceCoords;
@@ -60,7 +69,7 @@ function setupData(data) {
 function handleMouseMove(event) {
     nodes.forEach((node) => {
         if (isOnTopOfNode(event, node)) {
-            currentNodeToLabel = node;
+            selectedNode = node;
             simulation.restart();
         }
     });
@@ -82,15 +91,36 @@ function findClosestNodeToTarget(event) {
         }
     });
 
-    if (closestNode?.id !== currentNodeToLabel?.id) {
-        currentNodeToLabel = closestNode;
+    if (closestNode?.id !== selectedNode?.id) {
+        selectedNode = closestNode;
     }
     return closestNode;
 }
 
+//Highlight all outgoing links from node
+function highlightLinks(node) {
+    selectedNodeLinks = [];
+
+    const relatedNodeIds = relations[node.id];
+
+    if (!!relatedNodeIds) {
+        const targetNodes = nodes.filter((node) =>
+            relatedNodeIds.includes(node.id)
+        );
+
+        if (!!targetNodes) {
+            targetNodes.forEach((targNode) => {
+                const newLink = new Link(node, targNode);
+                selectedNodeLinks.push(newLink);
+            });
+        }
+    }
+}
+
 // Reheat the simulation when drag starts, and fix the subject position.
 function dragStarted(event) {
-    if (!event.active) simulation.alphaTarget(0.7).restart();
+    highlightLinks(event.subject);
+    if (!event.active) simulation.alphaTarget(0.3).restart();
     event.subject.fx = event.subject.x;
     event.subject.fy = event.subject.y;
 }
@@ -110,8 +140,7 @@ function dragEnded(event) {
 }
 
 function setupDrag() {
-    // Add a drag behavior. The _subject_ identifies the closest node to the pointer,
-    // conditional on the distance being less than 20 pixels.
+    // Add a drag behavior. The _subject_ identifies the closest node to the pointer
     d3.select(canvas)
         .node()
         .call(
@@ -124,57 +153,48 @@ function setupDrag() {
         );
 }
 
-function drawLabel(node) {
-    if (node.id === currentNodeToLabel?.id) {
-        context.font = '14px bold-serif';
-        context.fillStyle = 'black'; // Set text color
-        context.textAlign = 'center';
-        context.textBaseline = 'middle';
-        context.fillText(node.id, node.x - NODE_SIZE, node.y - NODE_SIZE * 2);
-        context.strokeStyle = d3.color('orange');
-        context.stroke();
-        context.restore();
-    }
-}
-
 function draw() {
-    // Specify the color scale.
-    const color = d3.scaleOrdinal(d3.schemeCategory10);
-
     context.clearRect(0, 0, window_width, window_height);
 
-    context.save();
-    context.globalAlpha = 0.6;
-    context.strokeStyle = '#999';
-    context.beginPath();
-    links.forEach(drawLink);
-    context.stroke();
-    context.restore();
+    links.forEach((link) => drawLink(link));
+    selectedNodeLinks.forEach((sLink) =>
+        drawArrow(context, sLink, 3, LINK_HIGHLIGHT_COLOR, NODE_SIZE + 2)
+    );
 
     context.save();
     context.strokeStyle = '#fff';
     context.globalAlpha = 1;
-    nodes.forEach((node) => {
-        context.beginPath();
-        drawNode(node);
-        context.fillStyle = color(node.group);
-        context.strokeStyle = '#fff';
-        context.fill();
-        context.stroke();
-        context.restore();
-        drawLabel(node);
-    });
+
+    nodes.forEach((node) => drawNode(node));
     context.restore();
 }
 
-function drawLink(d) {
-    context.moveTo(d.source.x, d.source.y);
-    context.lineTo(d.target.x, d.target.y);
+function drawLink(link, color = '#999') {
+    context.save();
+    context.globalAlpha = 0.6;
+    context.strokeStyle = color;
+
+    context.beginPath();
+    context.moveTo(link.source.x, link.source.y);
+    context.lineTo(link.target.x, link.target.y);
+
+    context.stroke();
+    context.restore();
 }
 
-function drawNode(d) {
-    context.moveTo(d.x + NODE_SIZE, d.y);
-    context.arc(d.x, d.y, NODE_SIZE, 0, 2 * Math.PI);
+function drawNode(node) {
+    context.beginPath();
+
+    context.moveTo(node.x + NODE_SIZE, node.y);
+    context.arc(node.x, node.y, NODE_SIZE, 0, 2 * Math.PI);
+
+    context.fillStyle = color(node.group);
+    context.strokeStyle = '#fff';
+    context.fill();
+    context.stroke();
+    context.restore();
+
+    drawLabel(context, node, selectedNode, NODE_SIZE);
 }
 
 function simulateGraph(data) {
